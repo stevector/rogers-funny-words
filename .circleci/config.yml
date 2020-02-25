@@ -6,7 +6,7 @@ workflows:
       - pantheon/push
 
 
-      - playground2/npmbuild_and_persist:
+      - playground/npmbuild_and_persist:
           package_lock_location: "frontity"
           path_to_persist: "frontity/build"
           build_command: "npm run build"
@@ -22,11 +22,11 @@ workflows:
             - run: cd frontity && cat frontity.settings.js
       - deploy_cloud_function:
           requires:
-            - playground2/npmbuild_and_persist
+            - playground/npmbuild_and_persist
 
 orbs:
   pantheon: pantheon-systems/pantheon@0.2.0
-  playground2: fauxalgore/playground@0.0.2
+  playground: fauxalgore/playground@0.0.2
 
 
 jobs:
