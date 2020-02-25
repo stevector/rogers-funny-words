@@ -4,5 +4,6 @@ workflows:
   just_push:
       jobs:
       - pantheon/push
+
 orbs:
   pantheon: pantheon-systems/pantheon@0.2.0
