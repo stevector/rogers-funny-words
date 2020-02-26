@@ -24,11 +24,6 @@ workflows:
           requires:
             - playground/npmbuild_and_persist
 
-orbs:
-  pantheon: pantheon-systems/pantheon@0.2.0
-  playground: fauxalgore/playground@0.0.2
-
-
 jobs:
   deploy_cloud_function:
     docker:
@@ -51,3 +46,7 @@ jobs:
           # @todo make a variable for serverlessplayground and runtime, and probably everything in gcloud functions deploy.
           command: |
             gcloud functions deploy ${TERMINUS_SITE}--${TERMINUS_ENV}  --project=serverlessplayground --runtime=nodejs10 --trigger-http  --allow-unauthenticated  --entry-point=default --source=frontity/build
+
+orbs:
+  pantheon: pantheon-systems/pantheon@0.2.0
+  playground: fauxalgore/playground@0.0.2
