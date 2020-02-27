@@ -1,3 +1,8 @@
+const env = process.env.TERMINUS_ENV;
+const site = process.env.TERMINUS_SITE;
+const url = `https://${env}-${site}.pantheonsite.io`;
+const api = `${url}/wp-json`;
+
 const settings = {
   "name": "frontity",
   "state": {
@@ -29,7 +34,7 @@ const settings = {
       "name": "@frontity/wp-source",
       "state": {
         "source": {
-          "api": "https://test-rogers-funny-words.pantheonsite.io/wp-json"
+          "api": api
         }
       }
     },
