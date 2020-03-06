@@ -16,6 +16,7 @@ workflows:
           requires:
             - playground/npmbuild_and_persist
 
+
 jobs:
   deploy_cloud_function:
     docker:
