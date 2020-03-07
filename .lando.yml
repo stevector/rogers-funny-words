@@ -1,0 +1,6 @@
+name: pantheon-rogers-funny-words
+recipe: pantheon
+config:
+  framework: wordpress
+  site: pantheon-rogers-funny-words
+  id: f1e43866-cccc-4faa-ba6d-e187b2d998e9
