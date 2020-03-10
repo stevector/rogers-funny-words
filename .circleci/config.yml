@@ -17,6 +17,7 @@ workflows:
                 command: |
                   git clone git@github.com:stevector/embed-files-in-node-server.git
                   cd embed-files-in-node-server
+                  git checkout build-for-gcp
                   rm -r frontity
                   cd ..
                   mv frontity embed-files-in-node-server/frontity
