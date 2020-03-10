@@ -25,6 +25,7 @@ workflows:
                   npm ci
                   cd ..
                   npm ci
+                  cat webpack.config.js
       - deploy_cloud_function:
           requires:
             - playground/npmbuild_and_persist
