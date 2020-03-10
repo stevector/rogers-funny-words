@@ -1,12 +1,24 @@
 <?php
 
-// @TODO Read from ENV or app-config
-$url = 'https://us-central1-serverlessplayground.cloudfunctions.net/';
-
-//print_r();
-// die();
-
 require $_ENV['HOME'] . '/code/wp-content/mu-plugins/hacky-proxy/vendor/autoload.php';
 
+$hackyproxy = new \Stevector\HackyProxy\PantheonToGCPBucket();
 
-$hackyproxy = new \Stevector\HackyProxy\PantheonToGCPBucket($url);
+$hackyproxy
+  ->setSite('pantheon-rogers-funny-words') // pantheon site
+  ->setEnvironment('dev') // pantheon environment
+  ->setForwards(
+    [
+      [
+        'path' => '/static/',
+        'url' => 'http://{site}.static.artifactor.io',
+        'prefix' => '{environment}',
+      ],
+      [
+        'path' => '/',
+        'url' => 'https://us-central1-webops-prototypes.cloudfunctions.net',
+        'prefix' => '{site}--{environment}',
+      ],
+    ]
+  )
+  ->forward();

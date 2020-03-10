@@ -10,48 +10,112 @@ use Zend\Diactoros\Response\SapiStreamEmitter;
 
 class PantheonToGCPBucket {
 
-  private function calculatePrefix() {
-
-    return $_ENV['PANTHEON_SITE_NAME'] . '--' . $_ENV['PANTHEON_ENVIRONMENT'];
-
-
-
-
-
-    if (!empty($_ENV['PANTHEON_ENVIRONMENT']) && $_ENV['PANTHEON_ENVIRONMENT'] !== 'lando') {
-      return $_ENV['PANTHEON_ENVIRONMENT'];
-    }
-
-    // @TODO return master, live, prod or the default stage name.
-    return 'pr-19';
-  }
-
-  private function calculateUri($exclude_html_suffix) {
-
-    if (!empty($exclude_html_suffix)) {
-      $suffix = '';
-    }
-    else {
-      $suffix =  '/index.html';
-    }
-
-    if ($_SERVER['REQUEST_URI'] === '/') {
-      return '/' . $this->calculatePrefix() . $suffix;
-    }
-
-    return '/' . $this->calculatePrefix() . $_SERVER['REQUEST_URI'] . $suffix;
-  }
-
-  private function isBackendPath() {
-    // @TODO read from app-config or ENV
-    $paths = [
+  protected $skipUrls = [
       '.php',
       '/wp/',
       'wp-admin.php',
-    ];
+  ];
+  protected $environment = '';
+  protected $site = '';
+  protected $forwards = [];
+  protected $prefix = '';
+  protected $url = '';
+  protected $uri = '';
 
-    $isBackendPath = array_filter($paths, function($path) {
-      return strpos($_SERVER['REQUEST_URI'], $path) !== FALSE;
+  public function setForwards(Array $forwards)
+  {
+    $this->forwards = $forwards;
+
+    return $this;
+  }
+
+  public function setSkipUrls(Array $skipUrls)
+  {
+    $this->skipUrls = $skipUrls;
+
+    return $this;
+  }
+
+  public function addSkipUrls(Array $skipUrls)
+  {
+    $this->skipUrls = array_merge($this->skipUrls ,$skipUrls);
+
+    return $this;
+  }
+
+  public function setEnvironment(String $environment)
+  {
+    $this->environment = $environment;
+
+    return $this;
+  }
+
+  public function setSite(String $site)
+  {
+    $this->site = $site;
+
+    return $this;
+  }
+
+  private function calculateSite()
+  {
+    if (!empty($_ENV['PANTHEON_ENVIRONMENT']) && $_ENV['PANTHEON_ENVIRONMENT'] !== 'lando') {
+      $this->site = $_ENV['PANTHEON_SITE_NAME'];
+    }
+  }
+
+  private function calculateEnvironment()
+  {
+    if (!empty($_ENV['PANTHEON_ENVIRONMENT']) && $_ENV['PANTHEON_ENVIRONMENT'] !== 'lando') {
+      $this->environment = $_ENV['PANTHEON_ENVIRONMENT'];
+    };
+  }
+
+  private function calculateForward()
+  {
+    foreach ($this->forwards as $forward) {
+      if (strpos($_SERVER['REQUEST_URI'], $forward['path']) !== FALSE) {
+        $this->prefix = str_replace(
+          [
+            '{site}',
+            '{environment}',
+          ],
+          [
+            $this->site,
+            $this->environment,
+          ],
+          $forward['prefix']
+        );
+        $this->url = str_replace(
+          [
+            '{site}',
+            '{environment}',
+          ],
+          [
+            $this->site,
+            $this->environment,
+          ],
+          $forward['url']
+        );
+
+        return;
+      }
+    }
+  }
+
+  private function calculateUri()
+  {
+    if ($_SERVER['REQUEST_URI'] === '/') {
+      $this->uri = '/' . $this->prefix;
+    }
+
+    $this->uri = '/' . $this->prefix . $_SERVER['REQUEST_URI'];
+  }
+
+  private function isBackendPath()
+  {
+    $isBackendPath = array_filter($this->skipUrls, function($url) {
+      return strpos($_SERVER['REQUEST_URI'], $url) !== FALSE;
     });
 
     return (count($isBackendPath) > 0);
@@ -69,9 +133,8 @@ class PantheonToGCPBucket {
     }
   }
 
-  function __construct($url)
+  function forward()
   {
-      // No REQUEST_URI
       if (empty($_SERVER['REQUEST_URI'])) {
         return;
       }
@@ -80,10 +143,16 @@ class PantheonToGCPBucket {
         return;
       }
 
+      // Calculate variables
+      $this->calculateEnvironment();
+      $this->calculateSite();
+      $this->calculateForward();
+      $this->calculateUri();
+
       $server = array_merge(
         $_SERVER,
         [
-          'REQUEST_URI' => $this->calculateUri(strpos($url, 'cloudfunction')),
+          'REQUEST_URI' => $this->uri,
         ]
       );
 
@@ -93,8 +162,8 @@ class PantheonToGCPBucket {
       // Create a guzzle client
       $guzzle = new \GuzzleHttp\Client([
         'curl' => [
-          CURLOPT_TCP_KEEPALIVE => 15,
-          CURLOPT_TCP_KEEPIDLE => 15,
+          CURLOPT_TCP_KEEPALIVE => 45,
+          CURLOPT_TCP_KEEPIDLE => 45,
         ]
       ]);
 
@@ -104,13 +173,8 @@ class PantheonToGCPBucket {
       // Add a response filter that removes the encoding headers.
       $proxy->filter(new RemoveEncodingFilter());
 
-      if (!$this->isValidPath($guzzle, $url, $server['REQUEST_URI'])) {
-        // @TODO update $server['REQUEST_URI'] to a valid 404 frontend page path
-        return;
-      }
-
       // Forward the request and get the response.
-      $response = $proxy->forward($request)->to($url);
+      $response = $proxy->forward($request)->to($this->url);
 
       // @TODO dependency to laminas-httphandlerrunner
       $emiter = new SapiStreamEmitter();
