@@ -20,18 +20,14 @@ workflows:
                   git checkout build-for-gcp
                   rm -r frontity
                   cd ..
-                  mv frontity embed-files-in-node-server/frontity
+                  cp -r frontity embed-files-in-node-server/frontity
                   cd embed-files-in-node-server/frontity
                   npm ci
                   cd ..
                   npm ci
-
-
       - deploy_cloud_function:
           requires:
             - playground/npmbuild_and_persist
-
-
 jobs:
   deploy_cloud_function:
     docker:
