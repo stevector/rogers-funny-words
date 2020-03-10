@@ -121,10 +121,9 @@ class PantheonToGCPBucket {
     return (count($isBackendPath) > 0);
   }
 
-  private function isValidPath($guzzle, $url, $uri) {
+  private function isValidPath($guzzle) {
     try {
-      $path = $url . ($uri[0] === "/" ? substr($uri, 1) : $uri);
-      $guzzle->head($path);
+      $guzzle->head($this->url . $this->uri);
 
       return true;
     } catch (\Exception $e) {
@@ -172,6 +171,11 @@ class PantheonToGCPBucket {
 
       // Add a response filter that removes the encoding headers.
       $proxy->filter(new RemoveEncodingFilter());
+
+      if (!$this->isValidPath($guzzle)) {
+
+        return;
+      }
 
       // Forward the request and get the response.
       $response = $proxy->forward($request)->to($this->url);
